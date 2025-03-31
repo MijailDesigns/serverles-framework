@@ -17,3 +17,5 @@ Para usarlo de manera local puedes usar el comando
 `sls offline start`
 
 y con esto estarian los endpoints disponibles
+
+![alt text](image.png)
