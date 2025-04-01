@@ -8,16 +8,16 @@ provider:
       statements:
         - Effect: Allow
           Action: dynamodb:*
-          Resource: arn:aws:dynamodb:us-east-1:211125331966:table/usersTable
+          Resource: arn:aws:dynamodb:us-east-1:590183823048:table/usersTable
         - Effect: Allow
           Action: s3:*
           Resource: arn:aws:s3:::serverless-bucket-9999/*
   environment:
     BUCKET: serverless-bucket-9999
 
-plugins:
-  - serverless-offline
-  - serverless-dynamodb
+# plugins:
+#   - serverless-offline
+#   - serverless-dynamodb
 
 package:
   individually: true
@@ -110,6 +110,19 @@ functions:
             parameters:
               querystrings:
                 filename: true
+  thumbnailGenerator:
+    handler: thumbnail/handler.thumbnailGenarator
+    package:
+      patterns:
+        - "thumbnail/handler.js"
+        - "node_modules/**"
+    events:
+      - s3:
+          bucket: serverless-bucket-9999
+          event: s3:ObjectCreated:*
+          existing: true
+          rules:
+            - prefix: "upload/"
 
 resources:
   Resources:
