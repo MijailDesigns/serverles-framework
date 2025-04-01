@@ -9,6 +9,11 @@ provider:
         - Effect: Allow
           Action: dynamodb:*
           Resource: arn:aws:dynamodb:us-east-1:211125331966:table/usersTable
+        - Effect: Allow
+          Action: s3:*
+          Resource: arn:aws:s3:::serverless-bucket-9999/*
+  environment:
+    BUCKET: serverless-bucket-9999
 
 plugins:
   - serverless-offline
@@ -92,6 +97,19 @@ functions:
             parameters:
               paths:
                 id: true
+  signedURL:
+    handler: signedurl/handler.signedUrl
+    package:
+      patterns:
+        - "signedurl/handler.js"
+    events:
+      - http:
+          path: signedurl
+          method: GET
+          request:
+            parameters:
+              querystrings:
+                filename: true
 
 resources:
   Resources:
@@ -108,3 +126,29 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+    S3Bucket:
+      Type: "AWS::S3::Bucket"
+      Properties:
+        BucketName: serverless-bucket-9999
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: false
+          BlockPublicPolicy: false
+          IgnorePublicAcls: false
+          RestrictPublicBuckets: false
+    MyBucketPolicy:
+      Type: "AWS::S3::BucketPolicy"
+      Properties:
+        Bucket:
+          Ref: "S3Bucket"
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal: "*"
+              Action: "s3:GetObject"
+              Resource:
+                Fn::Join:
+                  - ""
+                  - - "arn:aws:s3:::"
+                    - Ref: "S3Bucket"
+                    - "/*"
