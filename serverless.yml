@@ -3,12 +3,15 @@ service: crud-serverles-users
 provider:
   name: aws
   runtime: nodejs16.x
+  apiGateway:
+    apiKeys:
+      - name: crud-serverles-users-api-key
   iam:
     role:
       statements:
         - Effect: Allow
           Action: dynamodb:*
-          Resource: arn:aws:dynamodb:us-east-1:471112949491:table/usersTable
+          Resource: arn:aws:dynamodb:us-east-1:590183771178:table/usersTable
         - Effect: Allow
           Action: s3:*
           Resource: arn:aws:s3:::serverless-bucket-9999/*
@@ -43,6 +46,7 @@ functions:
         - "getAllUsers/handler.js"
     events:
       - http:
+          private: true
           path: users
           method: GET
   get-users:
