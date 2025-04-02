@@ -8,7 +8,7 @@ provider:
       statements:
         - Effect: Allow
           Action: dynamodb:*
-          Resource: arn:aws:dynamodb:us-east-1:590183823048:table/usersTable
+          Resource: arn:aws:dynamodb:us-east-1:471112949491:table/usersTable
         - Effect: Allow
           Action: s3:*
           Resource: arn:aws:s3:::serverless-bucket-9999/*
@@ -23,6 +23,8 @@ package:
   individually: true
   patterns:
     - "!*/**"
+    - "!nodejs*"
+    - "!*.zip"
 
 custom:
   serverless-dynamodb:
@@ -112,10 +114,11 @@ functions:
                 filename: true
   thumbnailGenerator:
     handler: thumbnail/handler.thumbnailGenarator
+    layers:
+      - { Ref: BaseLambdaLayer }
     package:
       patterns:
         - "thumbnail/handler.js"
-        - "node_modules/**"
     events:
       - s3:
           bucket: serverless-bucket-9999
@@ -123,6 +126,14 @@ functions:
           existing: true
           rules:
             - prefix: "upload/"
+
+layers:
+  base:
+    name: prd-dependencies
+    compatibleRuntimes:
+      - nodejs16.x
+    package:
+      artifact: app/nodejs-layer.zip
 
 resources:
   Resources:
