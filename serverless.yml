@@ -11,17 +11,21 @@ provider:
       statements:
         - Effect: Allow
           Action: dynamodb:*
-          Resource: arn:aws:dynamodb:us-east-1:590183771178:table/usersTable
+          Resource: arn:aws:dynamodb:us-east-1:992382477890:table/usersTable
         - Effect: Allow
           Action: s3:*
-          Resource: arn:aws:s3:::serverless-bucket-9999/*
+          Resource: arn:aws:s3:::serverless-bucket-9999-v2/*
   environment:
-    BUCKET: serverless-bucket-9999
+    BUCKET: serverless-bucket-9999-v2
     SECRET_EGG: ${ssm:/SECRET_EGG}
 
 # plugins:
 #   - serverless-offline
 #   - serverless-dynamodb
+
+plugins:
+  - serverless-apigateway-service-proxy
+  - serverless-lift
 
 package:
   individually: true
@@ -38,6 +42,38 @@ custom:
       port: 8000
       inMemory: true
       migrate: true
+  apiGatewayServiceProxies:
+    - sqs:
+        path: /likeuser
+        method: post
+        queueName: likequeue
+        cors: true
+        response:
+          template:
+            # `success` is used when the integration response is 200
+            success: |-
+              { "message: "accepted" }
+            # `clientError` is used when the integration response is 400
+            clientError: |-
+              { "message": "there is an error in your request" }
+            # `serverError` is used when the integration response is 500
+            serverError: |-
+              { "message": "there was an error handling your request" }
+
+constructs:
+  sqs-queue:
+    type: queue
+    batchSize: 1
+    worker:
+      handler: likeuser/handler.likeuser
+      # reservedConcurrency: 1
+      package:
+        patterns:
+          - "likeuser/handler.js"
+    extensions:
+      queue:
+        Properties:
+          QueueName: likequeue
 
 functions:
   custom-authorizer:
@@ -134,11 +170,13 @@ functions:
         - "thumbnail/handler.js"
     events:
       - s3:
-          bucket: serverless-bucket-9999
+          bucket: serverless-bucket-9999-v2
           event: s3:ObjectCreated:*
           existing: true
           rules:
             - prefix: "upload/"
+    dependsOn:
+      - S3Bucket
 
 layers:
   base:
@@ -166,7 +204,7 @@ resources:
     S3Bucket:
       Type: "AWS::S3::Bucket"
       Properties:
-        BucketName: serverless-bucket-9999
+        BucketName: serverless-bucket-9999-v2
         PublicAccessBlockConfiguration:
           BlockPublicAcls: false
           BlockPublicPolicy: false

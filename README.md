@@ -2,6 +2,7 @@ Para ejecutar en local y enviar a la nube se debe setear las access key y secret
 
 `aws configure`
 
+en tu consola de aws ve a AWS Systems Manager > Parameter Store y crea un parameter store de nombre SECRET_EGG de type SecureString
 y luego instalar las dependencias con
 
 `npm install`
