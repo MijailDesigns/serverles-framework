@@ -45,3 +45,16 @@ aws lambda publish-layer-version --layer-name my-first-layer \
 --compatible-runtimes nodejs18.x \
 --compatible-architectures x86_64 \
 ```
+
+el endpoint the getalluser esta protegido por apikey
+para obtener el valor de la apikey ve a aws apigateway > API keys y copia el valor de tu apikey
+
+el endpoint de create user tambien lo esta por un authorizer
+
+```
+authorizer:
+            name: custom-authorizer
+            resultTtlInSeconds: 15
+```
+
+valida la logica en el handler para saber que espera
