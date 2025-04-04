@@ -3,26 +3,36 @@ service: crud-serverles-users
 provider:
   name: aws
   runtime: nodejs16.x
+  apiGateway:
+    apiKeys:
+      - name: crud-serverles-users-api-key
   iam:
     role:
       statements:
         - Effect: Allow
           Action: dynamodb:*
-          Resource: arn:aws:dynamodb:us-east-1:590183823048:table/usersTable
+          Resource: arn:aws:dynamodb:us-east-1:992382477890:table/usersTable
         - Effect: Allow
           Action: s3:*
-          Resource: arn:aws:s3:::serverless-bucket-9999/*
+          Resource: arn:aws:s3:::serverless-bucket-9999-v2/*
   environment:
-    BUCKET: serverless-bucket-9999
+    BUCKET: serverless-bucket-9999-v2
+    SECRET_EGG: ${ssm:/SECRET_EGG}
 
 # plugins:
 #   - serverless-offline
 #   - serverless-dynamodb
 
+plugins:
+  - serverless-apigateway-service-proxy
+  - serverless-lift
+
 package:
   individually: true
   patterns:
     - "!*/**"
+    - "!nodejs*"
+    - "!*.zip"
 
 custom:
   serverless-dynamodb:
@@ -32,8 +42,45 @@ custom:
       port: 8000
       inMemory: true
       migrate: true
+  apiGatewayServiceProxies:
+    - sqs:
+        path: /likeuser
+        method: post
+        queueName: likequeue
+        cors: true
+        response:
+          template:
+            # `success` is used when the integration response is 200
+            success: |-
+              { "message: "accepted" }
+            # `clientError` is used when the integration response is 400
+            clientError: |-
+              { "message": "there is an error in your request" }
+            # `serverError` is used when the integration response is 500
+            serverError: |-
+              { "message": "there was an error handling your request" }
+
+constructs:
+  sqs-queue:
+    type: queue
+    batchSize: 1
+    worker:
+      handler: likeuser/handler.likeuser
+      # reservedConcurrency: 1
+      package:
+        patterns:
+          - "likeuser/handler.js"
+    extensions:
+      queue:
+        Properties:
+          QueueName: likequeue
 
 functions:
+  custom-authorizer:
+    handler: authorizer/handler.authorize
+    package:
+      patterns:
+        - "authorizer/handler.js"
   get-all-users:
     handler: getAllUsers/handler.getAllUsers
     package:
@@ -41,6 +88,7 @@ functions:
         - "getAllUsers/handler.js"
     events:
       - http:
+          private: true
           path: users
           method: GET
   get-users:
@@ -64,6 +112,9 @@ functions:
     events:
       - http:
           path: users
+          authorizer:
+            name: custom-authorizer
+            resultTtlInSeconds: 15
           method: POST
           request:
             schemas:
@@ -112,17 +163,28 @@ functions:
                 filename: true
   thumbnailGenerator:
     handler: thumbnail/handler.thumbnailGenarator
+    layers:
+      - { Ref: BaseLambdaLayer }
     package:
       patterns:
         - "thumbnail/handler.js"
-        - "node_modules/**"
     events:
       - s3:
-          bucket: serverless-bucket-9999
+          bucket: serverless-bucket-9999-v2
           event: s3:ObjectCreated:*
           existing: true
           rules:
             - prefix: "upload/"
+    dependsOn:
+      - S3Bucket
+
+layers:
+  base:
+    name: prd-dependencies
+    compatibleRuntimes:
+      - nodejs16.x
+    package:
+      artifact: app/nodejs-layer.zip
 
 resources:
   Resources:
@@ -142,7 +204,7 @@ resources:
     S3Bucket:
       Type: "AWS::S3::Bucket"
       Properties:
-        BucketName: serverless-bucket-9999
+        BucketName: serverless-bucket-9999-v2
         PublicAccessBlockConfiguration:
           BlockPublicAcls: false
           BlockPublicPolicy: false

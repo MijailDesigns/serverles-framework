@@ -10,9 +10,11 @@
   "license": "ISC",
   "devDependencies": {
     "aws-sdk": "^2.1692.0",
-    "serverless": "^4.9.1",
-    "serverless-offline": "^14.4.0",
-    "serverless-dynamodb": "^0.2.56"
+    "serverless": "^3.39.0",
+    "serverless-apigateway-service-proxy": "^2.2.2",
+    "serverless-dynamodb": "^0.2.56",
+    "serverless-lift": "^1.31.0",
+    "serverless-offline": "^14.4.0"
   },
   "dependencies": {
     "sharp": "^0.33.5"

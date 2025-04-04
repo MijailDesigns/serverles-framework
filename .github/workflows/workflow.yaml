@@ -19,12 +19,33 @@ jobs:
         run: |
           npm run test
 
+  build-js-layer-deps:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    name: Build SLS Layer - Prod
+    container:
+      image: "node:18-bullseye"
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: |
+          npm install --production
+          mkdir nodejs
+          mv node_modules nodejs
+          apt update -y && apt install zip -y
+          zip -r nodejs-layer.zip nodejs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nodejsdeps
+          path: nodejs-layer.zip
+
   deploy-env:
     permissions:
       pull-requests: write
     name: Deploy Lambda
     runs-on: ubuntu-latest
-    needs: testing-changes
+    needs: [testing-changes, build-js-layer-deps]
     steps:
       - uses: actions/checkout@v3
 
@@ -38,6 +59,11 @@ jobs:
       - name: NPM - Install dependencies
         if: steps.cached-npm-dependencies.outputs.cache-hit != 'true'
         run: "npm install"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: nodejsdeps
+          path: app/
 
       - name: Set Serverless Access Key
         run: echo "SERVERLESS_ACCESS_KEY=${{ secrets.SERVERLESS_ACCESS_KEY }}" >> $GITHUB_ENV
